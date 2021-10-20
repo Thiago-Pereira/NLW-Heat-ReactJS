@@ -1,8 +1,26 @@
+import { api } from '../../services/api';
+
 import styles from './styles.module.scss';
 
 import logoImg from '../../assets/logo.svg';
+import { useEffect, useState } from 'react';
+
+type Message = {
+  id: string;
+  text: string;
+  
+}
+
 
 export function MessageList() {
+  const messages = useState([]);
+
+  useEffect(() => {
+    api.get('messages/last3').then(response => {
+      console.log(response.data);
+    })
+  }, [])
+
   return (
     <div className={styles.messageListWrapper}>
       <img src={logoImg} alt="DoWhile 2021" />
