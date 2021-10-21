@@ -1,5 +1,5 @@
 import { api } from '../../services/api';
-
+import io from 'socket.io-client';
 import styles from './styles.module.scss';
 
 import logoImg from '../../assets/logo.svg';
@@ -8,16 +8,39 @@ import { useEffect, useState } from 'react';
 type Message = {
   id: string;
   text: string;
-  
+  user: {
+    name: string;
+    avatar_url: string;
+  }
 }
 
+let messagesQueue:Message[] = [];
+
+const socket = io('http://localhost:4000');
+
+socket.on('new_message', (newMessage: Message) => {
+  messagesQueue.push(newMessage);
+})
 
 export function MessageList() {
-  const messages = useState([]);
+  const [messages, setMessages] = useState<Message[]>([])
 
   useEffect(() => {
-    api.get('messages/last3').then(response => {
-      console.log(response.data);
+    setInterval(() => {
+      if (messagesQueue.length > 0) {
+        setMessages(prevState => [
+          messagesQueue[0],
+          prevState[0],
+          prevState[1],
+        ].filter(Boolean))
+        messagesQueue.shift()
+      }
+    }, 3000)
+  }, [])
+
+  useEffect(() => {
+    api.get<Message[]>('messages/last3').then(response => {
+      setMessages(response.data);
     })
   }, [])
 
@@ -26,33 +49,20 @@ export function MessageList() {
       <img src={logoImg} alt="DoWhile 2021" />
       
       <ul className={styles.messageList}>
-        <li className={styles.message}>
-          <p className={styles.messageContent}>Não vejo a hora do DoWhile começar!</p>
-          <div className={styles.messageUser}>
-            <div className={styles.userImage}>
-              <img src="https://github.com/Thiago-Pereira.png" alt="Thiago Pereira" />
-            </div>
-            <span>Thiago Pereira</span>
-          </div>
-        </li>
-        <li className={styles.message}>
-          <p className={styles.messageContent}>Não vejo a hora do DoWhile começar!</p>
-          <div className={styles.messageUser}>
-            <div className={styles.userImage}>
-              <img src="https://github.com/Thiago-Pereira.png" alt="Thiago Pereira" />
-            </div>
-            <span>Thiago Pereira</span>
-          </div>
-        </li>
-        <li className={styles.message}>
-          <p className={styles.messageContent}>Não vejo a hora do DoWhile começar!</p>
-          <div className={styles.messageUser}>
-            <div className={styles.userImage}>
-              <img src="https://github.com/Thiago-Pereira.png" alt="Thiago Pereira" />
-            </div>
-            <span>Thiago Pereira</span>
-          </div>
-        </li>
+        {messages.map(message => {
+          return (
+            <li key={message.id} className={styles.message}>
+              <p className={styles.messageContent}>{message.text}</p>
+              <div className={styles.messageUser}>
+                <div className={styles.userImage}>
+                  <img src={message.user.avatar_url} alt={message.user.name} />
+                </div>
+                <span>{message.user.name}</span>
+              </div>
+            </li>
+          );
+        })}
+
       </ul>
     </div>
   )
